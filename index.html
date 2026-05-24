@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BUBU Financial Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f7f6f2; --surface: #ffffff; --surface2: #f0efe9; --border: #e2e0d8;
+  --text: #1a1916; --text2: #6b6a65; --text3: #9e9d99;
+  --accent: #2a6049; --accent-light: #e8f2ee;
+  --red: #c0392b; --red-light: #fdf0ee;
+  --green: #1e6e47; --green-light: #eaf4ee;
+  --amber: #92600a; --amber-light: #fef8ed;
+  --mono: 'DM Mono', monospace; --sans: 'DM Sans', system-ui, sans-serif;
+  --radius: 10px; --radius-lg: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+.app { max-width: 1040px; margin: 0 auto; padding: 2rem 1.5rem; }
+h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.3px; }
+.sub { font-size: 12px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
+.btn-group { display: flex; gap: 7px; flex-wrap: wrap; }
+button { font-family: var(--sans); font-size: 13px; padding: 7px 13px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+button:hover { background: var(--surface2); border-color: #ccc; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { background: #1e4d38; }
+button.danger { color: var(--red); border-color: #f0ccc8; }
+button.danger:hover { background: var(--red-light); }
+button.amber { color: var(--amber); border-color: #f5dba0; }
+button.amber:hover { background: var(--amber-light); }
+.icon-btn { padding: 5px 8px; }
+.file-label { font-family: var(--sans); font-size: 13px; padding: 7px 13px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.file-label:hover { background: var(--surface2); }
+.file-label.amber { color: var(--amber); border-color: #f5dba0; }
+.file-label.amber:hover { background: var(--amber-light); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; }
+.stat-label { font-size: 11px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 20px; font-weight: 500; margin-top: 4px; font-family: var(--mono); }
+.stat-value.expense { color: var(--red); }
+.stat-value.income { color: var(--green); }
+.stat-value.net-pos { color: var(--green); }
+.stat-value.net-neg { color: var(--red); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+select, input[type=text], input[type=number], input[type=date] { font-family: var(--sans); font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.15s; }
+select:focus, input:focus { border-color: var(--accent); }
+.row-count { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead tr { background: var(--surface2); border-bottom: 1px solid var(--border); }
+th { padding: 9px 10px; text-align: left; font-weight: 500; color: var(--text2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer; white-space: nowrap; user-select: none; }
+th:hover { color: var(--text); }
+th.right, td.right { text-align: right; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafaf8; }
+.td-date { color: var(--text2); font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+.td-desc { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-exp { color: var(--red); font-family: var(--mono); white-space: nowrap; }
+.td-inc { color: var(--green); font-family: var(--mono); white-space: nowrap; }
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 99px; background: var(--surface2); color: var(--text2); white-space: nowrap; }
+.td-actions { display: flex; gap: 4px; }
+.empty { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+.form-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+.form-title { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 11px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.4px; }
+input[type=text], input[type=number], input[type=date], select { width: 100%; }
+.form-actions { display: flex; gap: 8px; margin-top: 1rem; }
+.banner { border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 0.75rem; border: 1px solid; }
+.banner.info { background: var(--accent-light); border-color: #b3d4c7; color: var(--accent); }
+.banner.amber-bg { background: var(--amber-light); border-color: #f5dba0; color: var(--amber); }
+.banner.danger-bg { background: var(--red-light); border-color: #f0ccc8; color: var(--red); }
+.banner-title { font-weight: 500; font-size: 14px; margin-bottom: 8px; }
+.banner-rows { font-size: 12px; opacity: 0.85; margin-bottom: 10px; }
+.banner-row { display: flex; gap: 10px; padding: 1px 0; }
+.banner-row span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#toast { position: fixed; top: 16px; right: 16px; z-index: 9999; padding: 10px 16px; border-radius: 9px; font-size: 13px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+#toast.show { display: flex; }
+#toast.success { background: var(--green-light); border: 1px solid #b3d9c2; color: var(--green); }
+#toast.error { background: var(--red-light); border: 1px solid #f0ccc8; color: var(--red); }
+#toast.info { background: var(--amber-light); border: 1px solid #f5dba0; color: var(--amber); }
+
+/* Charts section */
+.charts-section { margin-bottom: 1rem; }
+.charts-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem; }
+.charts-toggle button { font-size: 12px; padding: 5px 12px; }
+.charts-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; }
+.chart-title { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono); margin-bottom: 0.75rem; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-legend { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; max-height: 130px; overflow-y: auto; }
+.legend-row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; cursor: pointer; padding: 2px 4px; border-radius: 5px; transition: background 0.1s; }
+.legend-row:hover { background: var(--surface2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-label { flex: 1; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-val { color: var(--text); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.legend-pct { color: var(--text3); font-family: var(--mono); font-size: 10px; min-width: 36px; text-align: right; }
+
+/* Bulk edit */
+.bulk-bar { display:none; align-items:center; gap:10px; padding:9px 14px; background:var(--accent-light); border:1px solid #b3d4c7; border-radius:var(--radius); margin-bottom:10px; flex-wrap:wrap; }
+.bulk-bar.visible { display:flex; }
+.bulk-bar span { font-size:13px; color:var(--accent); font-weight:500; }
+.bulk-select { display:none; }
+.bulk-mode .bulk-select { display:table-cell; width:36px; }
+.bulk-mode .td-actions { display:none; }
+.chk { width:15px; height:15px; cursor:pointer; accent-color:var(--accent); }
+tr.selected td { background:#edf7f2 !important; }
+
+/* Tags */
+.tag-pill { display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:99px; background:#e8f2ee; color:#2a6049; border:1px solid #b3d4c7; white-space:nowrap; font-weight:500; cursor:pointer; transition:background 0.12s; }
+.tag-pill:hover { background:#d0e9df; }
+.tag-pill.active { background:#2a6049; color:#fff; border-color:#2a6049; }
+.tag-manage { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.1rem 1.25rem; margin-bottom:0.75rem; }
+.tag-manage-title { font-size:13px; font-weight:500; margin-bottom:0.75rem; display:flex; align-items:center; gap:8px; }
+.tag-list-mgr { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:0.75rem; }
+.tag-chip { display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:3px 10px 3px 10px; border-radius:99px; background:#e8f2ee; color:#2a6049; border:1px solid #b3d4c7; }
+.tag-chip button { border:none; background:none; color:#2a6049; cursor:pointer; padding:0 2px; font-size:13px; line-height:1; }
+.tag-add-row { display:flex; gap:8px; align-items:center; }
+.tag-add-row input { flex:1; }
+/* tag combo in form */
+.tag-combo { position:relative; }
+.tag-combo input { width:100%; }
+.tag-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; z-index:100; max-height:180px; overflow-y:auto; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+.tag-dropdown div { padding:7px 12px; font-size:13px; cursor:pointer; }
+.tag-dropdown div:hover, .tag-dropdown div.active { background:var(--accent-light); color:var(--accent); }
+.tag-none { font-size:11px; color:var(--text3); font-style:italic; padding:6px 12px; }
+
+/* Account Tabs */
+.tab-bar { display:flex; gap:0; margin-bottom:1rem; border-bottom:2px solid var(--border); flex-wrap:wrap; }
+.tab-btn { font-family:var(--sans); font-size:13px; padding:8px 18px; border:none; background:none; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; font-weight:500; white-space:nowrap; }
+.tab-btn:hover { color:var(--text); background:var(--surface2); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); background:none; }
+.tab-count { font-size:10px; font-family:var(--mono); margin-left:5px; opacity:0.7; }
+
+/* P&L summary box */
+.pnl-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; margin-bottom:1rem; }
+.pnl-title { font-size:11px; font-weight:500; color:var(--text3); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.75rem; display:flex; align-items:center; gap:8px; }
+.pnl-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:0.75rem; }
+.pnl-item { padding:8px 10px; border-radius:8px; }
+.pnl-item.exp-bg { background:var(--red-light); }
+.pnl-item.inc-bg { background:var(--green-light); }
+.pnl-item.net-bg { background:var(--surface2); }
+.pnl-label { font-size:10px; color:var(--text3); font-family:var(--mono); text-transform:uppercase; }
+.pnl-val { font-size:17px; font-weight:500; font-family:var(--mono); margin-top:2px; }
+.pnl-val.exp { color:var(--red); }
+.pnl-val.inc { color:var(--green); }
+.pnl-val.pos { color:var(--green); }
+.pnl-val.neg { color:var(--red); }
+.pnl-excluded { display:flex; flex-wrap:wrap; gap:8px; font-size:11.5px; color:var(--text3); border-top:1px solid var(--border); padding-top:0.6rem; margin-top:0.25rem; }
+.pnl-excl-item { display:flex; align-items:center; gap:5px; }
+.pnl-excl-item span { font-family:var(--mono); color:var(--text2); }
+.excl-toggle { font-size:11px; padding:2px 8px; border-radius:99px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text3); transition:all 0.12s; }
+.excl-toggle.on { background:var(--surface2); color:var(--text); border-color:#ccc; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="toolbar">
+    <div>
+      <h1>BUBU Financial Report</h1>
+      <div class="sub" id="entry-count">0 entries</div>
+    </div>
+    <div class="btn-group">
+      <!-- Import Excel -->
+      <label class="file-label amber" id="xlsx-label" title="นำเข้าจาก Excel (.xlsx)">
+        📊 Import Excel
+        <input type="file" accept=".xlsx,.xls" id="xlsx-input" style="display:none" onchange="handleExcelImport(event)"/>
+      </label>
+      <!-- Export CSV -->
+      <button onclick="exportCSV()">⬇ Export CSV</button>
+      <!-- Sync Image -->
+      <label class="file-label" id="sync-label">
+        ⊕ Sync Image
+        <input type="file" accept="image/*" id="img-input" style="display:none" onchange="handleImageSync(event)"/>
+      </label>
+      <!-- Add -->
+      <button class="primary" onclick="startAdd()">+ Add Entry</button>
+      <!-- Tags -->
+      <button onclick="toggleTagManager()" style="font-size:13px">🏷 Tags</button>
+      <!-- Bulk -->
+      <button id="btn-bulk" onclick="toggleBulkMode()" style="font-size:13px">☐ Bulk Edit</button>
+      <!-- Clear -->
+      <button class="danger" onclick="confirmClear()">⊘ Clear All</button>
+    </div>
+  </div>
+
+  <div id="import-banner" style="display:none"></div>
+  <div id="sync-banner" style="display:none"></div>
+  <div id="clear-banner" style="display:none"></div>
+  <div id="form-panel" style="display:none"></div>
+
+  <!-- Account Tabs -->
+  <div class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" onclick="setTab('all')" id="tab-all">All <span class="tab-count" id="tc-all"></span></button>
+    <button class="tab-btn" onclick="setTab('current')" id="tab-current">Current <span class="tab-count" id="tc-current"></span></button>
+    <button class="tab-btn" onclick="setTab('savings')" id="tab-savings">Savings <span class="tab-count" id="tc-savings"></span></button>
+    <button class="tab-btn" onclick="setTab('loan')" id="tab-loan">Loan <span class="tab-count" id="tc-loan"></span></button>
+    <button class="tab-btn" onclick="setTab('pettycash')" id="tab-pettycash">Petty Cash <span class="tab-count" id="tc-pettycash"></span></button>
+    <button class="tab-btn" onclick="setTab('sjs')" id="tab-sjs">SJS <span class="tab-count" id="tc-sjs"></span></button>
+  </div>
+
+  <!-- P&L Summary Box -->
+  <div class="pnl-box" id="pnl-box">
+    <div class="pnl-title">
+      P&amp;L Summary
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)">Exclude:</span>
+      <button class="excl-toggle on" id="excl-transfer" onclick="toggleExclude('transfer')">Transfer</button>
+      <button class="excl-toggle on" id="excl-loan" onclick="toggleExclude('loan')">Loan</button>
+      <button class="excl-toggle" id="excl-pettycash" onclick="toggleExclude('pettycash')">Petty Cash</button>
+    </div>
+    <div class="pnl-grid">
+      <div class="pnl-item exp-bg"><div class="pnl-label">Expense</div><div class="pnl-val exp" id="pnl-exp">฿0.00</div></div>
+      <div class="pnl-item inc-bg"><div class="pnl-label">Income</div><div class="pnl-val inc" id="pnl-inc">฿0.00</div></div>
+      <div class="pnl-item net-bg"><div class="pnl-label">Net P&amp;L</div><div class="pnl-val" id="pnl-net">฿0.00</div></div>
+    </div>
+    <div class="pnl-excluded" id="pnl-excluded-row"></div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="charts-toggle">
+      <button id="btn-show-charts" class="active" onclick="toggleCharts()">◉ Show Charts</button>
+    </div>
+    <div id="charts-area" class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Expense by Category</div>
+        <div class="chart-wrap"><canvas id="chart-exp"></canvas></div>
+        <div class="chart-legend" id="legend-exp"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Income by Category</div>
+        <div class="chart-wrap"><canvas id="chart-inc"></canvas></div>
+        <div class="chart-legend" id="legend-inc"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bulk-bar" id="bulk-bar">
+    <span id="bulk-count">0 selected</span>
+    <select id="bulk-cat-select" style="font-size:13px;padding:5px 9px">
+      <option value="">— เลือก Category ใหม่ —</option>
+    </select>
+    <button class="primary" onclick="applyBulkCategory()" style="font-size:12px;padding:5px 11px">✓ Apply</button>
+    <button onclick="clearSelection()" style="font-size:12px;padding:5px 11px">✕ Cancel</button>
+  </div>
+  <div class="filters">
+    <select id="f-year" onchange="render()"><option value="">All years</option></select>
+    <select id="f-month" onchange="render()">
+      <option value="">All months</option>
+      <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+      <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+      <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+      <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+    </select>
+    <select id="f-cat" onchange="render()"><option value="">All categories</option></select>
+    <select id="f-type-f" onchange="render()">
+      <option value="">All types</option>
+      <option>Statement</option><option>SJS Advance</option><option>Expense Report</option>
+    </select>
+    <span class="row-count" id="row-count"></span>
+  </div>
+
+  <!-- Tag filter row -->
+  <div id="tag-filter-row" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;min-height:0"></div>
+  <!-- Tag manager panel -->
+  <div id="tag-manage-panel" style="display:none"></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="bulk-select" style="width:36px"><input type="checkbox" class="chk" id="chk-all" onclick="toggleSelectAll(this)"/></th>
+          <th onclick="sortBy('date')">Date <span id="s-date"></span></th>
+          <th onclick="sortBy('type')">Type <span id="s-type"></span></th>
+          <th onclick="sortBy('description')">Description <span id="s-description"></span></th>
+          <th class="right" onclick="sortBy('expense')">Expense <span id="s-expense"></span></th>
+          <th class="right" onclick="sortBy('income')">Income <span id="s-income"></span></th>
+          <th onclick="sortBy('category')">Category <span id="s-category"></span></th>
+          <th onclick="sortBy('tag')">Tag <span id="s-tag"></span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const CATEGORIES = ["Accounting & Audit","Bank Fee","Cleaning","Credit Card","Event & Catering","Food & Beverage","Fuel & Vehicle","Garden & Farm","Income","Insurance","Loan","Maintenance","Other","Petty Cash","Salary","Supplies","Tax & License","Transfer","Travel","Utilities"];
+const TYPES = ["Statement","SJS Advance","Expense Report"];
+const ACCOUNTS = ["Current","Savings","Other"];
+const STORAGE_KEY = "bubu-financial-v2";
+
+let entries = [];
+let sortCol = "date", sortDir = "desc";
+let editId = null;
+let syncPending = null;
+let importPending = null;
+
+// ── Storage ───────────────────────────────────────────
+function load() {
+  loadTags();
+  try { const d = localStorage.getItem(STORAGE_KEY); if(d) entries = JSON.parse(d); } catch {}
+  getTagsFromEntries(); populateFilters(); render();
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch {}
+  document.getElementById("entry-count").textContent = entries.length.toLocaleString() + " entries";
+}
+
+// ── Helpers ───────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function today() { return new Date().toISOString().slice(0,10); }
+function formatTHB(n) {
+  if(n == null || n === "") return "";
+  return "฿" + Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function parseNum(v) {
+  const n = parseFloat(String(v||"").replace(/,/g,""));
+  return isNaN(n) ? null : n;
+}
+function excelDateToISO(val) {
+  if(!val) return today();
+  if(typeof val === "string" && val.match(/^\d{4}-\d{2}-\d{2}/)) return val.slice(0,10);
+  if(typeof val === "number") {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return d.toISOString().slice(0,10);
+  }
+  if(val instanceof Date) return val.toISOString().slice(0,10);
+  const d = new Date(val);
+  if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return today();
+}
+
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  t.textContent = (type==="success"?"✓ ":type==="error"?"✕ ":"ℹ ") + msg;
+  t.className = "show " + type;
+  setTimeout(()=>{ t.className=""; }, 3500);
+}
+
+// ── Excel Import ──────────────────────────────────────
+function handleExcelImport(event) {
+  const file = event.target.files[0]; if(!file) return;
+  event.target.value = "";
+  document.getElementById("xlsx-label").textContent = "📊 Reading…";
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      const imported = [];
+
+
+      // helper: อ่าน sheet เป็น array แล้ว map header เอง (ป้องกัน SheetJS พังกับ column ชื่อมี parentheses)
+      function sheetToRows(ws) {
+        const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+        if(arr.length < 2) return [];
+        const headers = arr[0].map(h => h == null ? "" : String(h).trim());
+        return arr.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = row[i] ?? null; });
+          return obj;
+        });
+      }
+      // ── Statement sheet ──
+      // ── Current sheet (หรือ Statement เดิม) ──
+      const stmtSheets = ["Current", "Statement"].filter(s => wb.SheetNames.includes(s));
+      stmtSheets.forEach(sheetName => {
+        const rows = sheetToRows(wb.Sheets[sheetName]);
+        rows.forEach(r => {
+          const exp = parseNum(r["Expense (THB)"]);
+          const inc = parseNum(r["Income (THB)"]);
+          if(!r["Description"] && exp == null && inc == null) return;
+          imported.push({
+            id: uid(),
+            date: excelDateToISO(r["Date"]),
+            type: "Statement",
+            description: String(r["Description"]||"").trim(),
+            expense: exp,
+            income: inc,
+            category: CATEGORIES.includes(r["Category"]) ? r["Category"] : "Other",
+            account: sheetName === "Savings" ? "Savings" : (ACCOUNTS.includes(r["Account"]) ? r["Account"] : "Current"),
+            employee: "",
+            tag: String(r["Tag"]||"").trim()
+          });
+        });
+      });
+
+      // ── Savings sheet ──
+      if(wb.SheetNames.includes("Savings")) {
+        const rows = sheetToRows(wb.Sheets["Savings"]);
+        rows.forEach(r => {
+          const exp = parseNum(r["Expense (THB)"]);
+          const inc = parseNum(r["Income (THB)"]);
+          if(!r["Description"] && exp == null && inc == null) return;
+          imported.push({
+            id: uid(),
+            date: excelDateToISO(r["Date"]),
+            type: "Statement",
+            description: String(r["Description"]||"").trim(),
+            expense: exp,
+            income: inc,
+            category: CATEGORIES.includes(r["Category"]) ? r["Category"] : "Other",
+            account: "Savings",
+            employee: "",
+            tag: String(r["Tag"]||"").trim()
+          });
+        });
+      }
+
+      // ── SJS sheet ──
+      if(wb.SheetNames.includes("SJS")) {
+        const rows = sheetToRows(wb.Sheets["SJS"]);
+        rows.forEach(r => {
+          const out = parseNum(r["Out (THB)"]);
+          const inp = parseNum(r["In (THB)"]);
+          if(!r["Description"] && out == null && inp == null) return;
+          imported.push({
+            id: uid(),
+            date: excelDateToISO(r["Date"]),
+            type: "SJS Advance",
+            description: String(r["Description"]||"").trim(),
+            expense: out,
+            income: inp,
+            category: CATEGORIES.includes(r["Category"]) ? r["Category"] : "Other",
+            account: "Current",
+            employee: "",
+            tag: String(r["Tag"]||"").trim()
+          });
+        });
+      }
+
+      // ── Expense sheet ──
+      if(wb.SheetNames.includes("Expense")) {
+        const rows = sheetToRows(wb.Sheets["Expense"]);
+        rows.forEach(r => {
+          const amt = parseNum(r["Amount (THB)"]);
+          if(!r["Description"] && amt == null) return;
+          imported.push({
+            id: uid(),
+            date: excelDateToISO(r["Date"]),
+            type: "Expense Report",
+            description: String(r["Description"]||"").trim(),
+            expense: amt,
+            income: null,
+            category: CATEGORIES.includes(r["Category"]) ? r["Category"] : "Other",
+            account: "Current",
+            employee: String(r["Employee"]||"").trim(),
+            tag: String(r["Tag"]||"").trim()
+          });
+        });
+      }
+
+      importPending = imported;
+      showImportBanner(file.name);
+    } catch(err) {
+      showToast("Import failed: " + err.message, "error");
+    }
+    document.getElementById("xlsx-label").innerHTML = "📊 Import Excel";
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showImportBanner(filename) {
+  const b = document.getElementById("import-banner");
+  b.style.display = "block";
+  if(!importPending || importPending.length === 0) {
+    b.innerHTML = `<div class="banner amber-bg"><div class="banner-title">ไม่พบข้อมูลในไฟล์ "${filename}"</div><p style="font-size:13px;margin-bottom:10px">ตรวจสอบว่าไฟล์มี Sheet ชื่อ "Statement", "SJS", หรือ "Expense"</p><button onclick="document.getElementById('import-banner').style.display='none'">OK</button></div>`;
+    return;
+  }
+  // count by source
+  const stmtCount = importPending.filter(e=>e.type==="Statement").length;
+  const sjsCount  = importPending.filter(e=>e.type==="SJS Advance").length;
+  const expCount  = importPending.filter(e=>e.type==="Expense Report").length;
+
+  const preview = importPending.slice(0,4).map(e=>`
+    <div class="banner-row">
+      <span style="opacity:0.7;min-width:80px">${e.date}</span>
+      <span>${e.description}</span>
+      <span style="white-space:nowrap">${e.expense!=null?formatTHB(e.expense):formatTHB(e.income)}</span>
+    </div>`).join("");
+  const more = importPending.length > 4 ? `<div style="opacity:0.6;font-size:11px;margin-top:2px">+${importPending.length-4} more rows…</div>` : "";
+
+  b.innerHTML = `<div class="banner amber-bg">
+    <div class="banner-title">📊 พบ ${importPending.length.toLocaleString()} รายการใน "${filename}"</div>
+    <div style="font-size:12px;opacity:0.8;margin-bottom:8px">
+      Statement: ${stmtCount.toLocaleString()} · SJS: ${sjsCount.toLocaleString()} · Expense: ${expCount.toLocaleString()}
+    </div>
+    <div class="banner-rows">${preview}${more}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="amber" onclick="doImport('replace')">🔄 แทนที่ข้อมูลเดิม (${entries.length} รายการ)</button>
+      <button class="amber" onclick="doImport('merge')">➕ รวมกับข้อมูลเดิม</button>
+      <button onclick="document.getElementById('import-banner').style.display='none'">ยกเลิก</button>
+    </div>
+  </div>`;
+}
+
+function doImport(mode) {
+  if(!importPending) return;
+  if(mode === "replace") {
+    entries = importPending;
+  } else {
+    // merge: avoid duplicates by date+description+amount
+    const existing = new Set(entries.map(e=>`${e.date}|${e.description}|${e.expense}|${e.income}`));
+    const newOnes = importPending.filter(e=>!existing.has(`${e.date}|${e.description}|${e.expense}|${e.income}`));
+    entries = [...newOnes, ...entries];
+    showToast(`เพิ่ม ${newOnes.length} รายการใหม่ (ข้าม ${importPending.length - newOnes.length} ซ้ำ)`);
+  }
+  importPending = null;
+  save(); populateFilters(); render();
+  document.getElementById("import-banner").style.display = "none";
+  if(mode === "replace") showToast(`นำเข้า ${entries.length.toLocaleString()} รายการสำเร็จ`);
+}
+
+// ── Filters & Render ──────────────────────────────────
+function populateFilters() {
+  const years = [...new Set(entries.map(e => new Date(e.date).getFullYear()))].sort((a,b)=>b-a);
+  const fy = document.getElementById("f-year");
+  const cy = fy.value;
+  fy.innerHTML = '<option value="">All years</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join("");
+  if(cy) fy.value = cy;
+  const fc = document.getElementById("f-cat");
+  const cc = fc.value;
+  fc.innerHTML = '<option value="">All categories</option>' + CATEGORIES.map(c=>`<option>${c}</option>`).join("");
+  if(cc) fc.value = cc;
+}
+
+function getFiltered() {
+  const fy = document.getElementById("f-year").value;
+  const fm = document.getElementById("f-month").value;
+  const fc = document.getElementById("f-cat").value;
+  const ft = document.getElementById("f-type-f").value;
+  return entries.filter(e => {
+    const d = new Date(e.date);
+    if(fy && String(d.getFullYear())!==fy) return false;
+    if(fm && String(d.getMonth()+1)!==fm) return false;
+    if(fc && e.category!==fc) return false;
+    if(ft && e.type!==ft) return false;
+    if(activeTagFilter && e.tag !== activeTagFilter) return false;
+    return true;
+  });
+}
+
+function sortBy(col) {
+  if(sortCol===col) sortDir = sortDir==="asc"?"desc":"asc";
+  else { sortCol=col; sortDir="asc"; }
+  render();
+}
+
+function render() {
+  const baseFiltered = getFiltered();         // year/month/cat/type filter only
+  updateTabCounts(baseFiltered);              // update tab badges
+  const filtered = baseFiltered.filter(tabFilter); // apply active tab
+  renderPnL(filtered);                        // P&L box (with exclude logic)
+  const sorted = [...filtered].sort((a,b)=>{
+    let va=a[sortCol]||"", vb=b[sortCol]||"";
+    if(sortCol==="expense"||sortCol==="income"){ va=parseNum(va)||0; vb=parseNum(vb)||0; }
+    if(va<vb) return sortDir==="asc"?-1:1;
+    if(va>vb) return sortDir==="asc"?1:-1;
+    return 0;
+  });
+  ["date","type","description","expense","income","category"].forEach(c=>{
+    const el = document.getElementById("s-"+c);
+    if(el) el.textContent = sortCol===c ? (sortDir==="asc"?"↑":"↓") : "";
+  });
+  document.getElementById("row-count").textContent = filtered.length.toLocaleString() + " rows";
+  document.getElementById("entry-count").textContent = entries.length.toLocaleString() + " entries";
+  renderTagFilterRow();
+  renderCharts(filtered);
+
+  const tbody = document.getElementById("tbody");
+  if(sorted.length===0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div>${entries.length===0?"No entries yet. Import Excel, add manually, or use Sync Image.":"No entries match these filters."}</div></td></tr>`;
+    return;
+  }
+  // store sorted ids for select-all
+  window._sortedIds = sorted.map(e=>e.id);
+  tbody.innerHTML = sorted.map(e => `
+    <tr id="row-${e.id}" class="${selectedIds.has(e.id)?'selected':''}">
+      <td class="bulk-select"><input type="checkbox" class="chk" ${selectedIds.has(e.id)?'checked':''} onclick="toggleSelect('${e.id}',this)"/></td>
+      <td class="td-date">${e.date}</td>
+      <td style="color:#6b6a65;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.type}">${e.type}</td>
+      <td class="td-desc" title="${(e.description||"").replace(/"/g,'&quot;')}">${e.description||""}</td>
+      <td class="right td-exp">${e.expense!=null&&e.expense!==""?formatTHB(e.expense):""}</td>
+      <td class="right td-inc">${e.income!=null&&e.income!==""?formatTHB(e.income):""}</td>
+      <td><span class="badge">${e.category||""}</span></td>
+      <td>${e.tag?`<span class="tag-pill" onclick="setTagFilter('${e.tag.replace(/'/g,"\\'")}')">🏷 ${e.tag}</span>`:""}</td>
+      <td><div class="td-actions">
+        <button class="icon-btn" onclick="startEdit('${e.id}')" title="Edit">✎</button>
+        <button class="icon-btn danger" onclick="deleteEntry('${e.id}')" title="Delete">✕</button>
+      </div></td>
+    </tr>
+  `).join("");
+}
+
+// ── Form ──────────────────────────────────────────────
+function startAdd() {
+  editId = null;
+  showForm({ id: uid(), date: today(), type:"Statement", description:"", expense:"", income:"", category:"Other", account:"Current", employee:"" });
+}
+function startEdit(id) {
+  editId = id;
+  const e = entries.find(x=>x.id===id);
+  if(e) showForm({...e, expense:e.expense??'', income:e.income??''});
+}
+function showForm(data) {
+  const panel = document.getElementById("form-panel");
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div class="form-panel">
+      <div class="form-title">${editId?"Edit entry":"New entry"}</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Date</label><input type="date" id="f-date" value="${data.date}"/></div>
+        <div class="form-group"><label>Type</label>
+          <select id="f-type-inp" onchange="toggleEmployee()">
+            ${TYPES.map(t=>`<option${t===data.type?" selected":""}>${t}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-group full"><label>Description</label>
+          <input type="text" id="f-desc" value="${(data.description||"").replace(/"/g,'&quot;')}" placeholder="Vendor – description"/>
+        </div>
+        <div class="form-group"><label>Expense (THB)</label><input type="number" id="f-expense" value="${data.expense||""}" placeholder="0.00"/></div>
+        <div class="form-group"><label>Income (THB)</label><input type="number" id="f-income" value="${data.income||""}" placeholder="0.00"/></div>
+        <div class="form-group"><label>Category</label>
+          <select id="f-cat-inp">${CATEGORIES.map(c=>`<option${c===data.category?" selected":""}>${c}</option>`).join("")}</select>
+        </div>
+        <div class="form-group"><label>Account</label>
+          <select id="f-acct">${ACCOUNTS.map(a=>`<option${a===data.account?" selected":""}>${a}</option>`).join("")}</select>
+        </div>
+        <div class="form-group" id="employee-group" style="display:${data.type==='Expense Report'?'flex':'none'}">
+          <label>Employee</label><input type="text" id="f-employee" value="${data.employee||""}" placeholder="Name"/>
+        </div>
+        <div class="form-group">
+          <label>Tag / Project</label>
+          <div class="tag-combo">
+            <input type="text" id="f-tag" value="${data.tag||""}" placeholder="พิมพ์หรือเลือก tag…" autocomplete="off"
+              oninput="showTagDropdown(this.value)"
+              onfocus="showTagDropdown(this.value)"
+              onblur="setTimeout(()=>hideTagDropdown(),180)"/>
+            <div class="tag-dropdown" id="tag-dropdown" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="primary" onclick="submitForm('${data.id}')">${editId?"Update":"Add entry"}</button>
+        <button onclick="closeForm()">Cancel</button>
+      </div>
+    </div>`;
+}
+function toggleEmployee() {
+  const t = document.getElementById("f-type-inp")?.value;
+  const g = document.getElementById("employee-group");
+  if(g) g.style.display = t==="Expense Report"?"flex":"none";
+}
+function closeForm() { document.getElementById("form-panel").style.display="none"; editId=null; }
+function submitForm(id) {
+  const desc = document.getElementById("f-desc").value.trim();
+  const exp = document.getElementById("f-expense").value;
+  const inc = document.getElementById("f-income").value;
+  if(!desc) { showToast("Description required","error"); return; }
+  if(exp===""&&inc==="") { showToast("Enter expense or income","error"); return; }
+  const entry = {
+    id, date: document.getElementById("f-date").value,
+    type: document.getElementById("f-type-inp").value,
+    description: desc, expense: parseNum(exp), income: parseNum(inc),
+    category: document.getElementById("f-cat-inp").value,
+    account: document.getElementById("f-acct").value,
+    employee: document.getElementById("f-employee")?.value||""
+  };
+  if(editId) { entries = entries.map(e=>e.id===editId?entry:e); }
+  else { entries.unshift(entry); }
+  save(); populateFilters(); render(); closeForm();
+  showToast(editId?"Entry updated":"Entry added");
+}
+function deleteEntry(id) {
+  entries = entries.filter(e=>e.id!==id);
+  save(); populateFilters(); render(); showToast("Entry deleted");
+}
+
+// ── Clear ─────────────────────────────────────────────
+function confirmClear() {
+  const b = document.getElementById("clear-banner");
+  b.style.display = "block";
+  b.innerHTML = `<div class="banner danger-bg">
+    <div class="banner-title">⚠ ลบข้อมูลทั้งหมด ${entries.length.toLocaleString()} รายการ?</div>
+    <div style="display:flex;gap:8px">
+      <button class="danger" onclick="doClear()">Yes, clear all</button>
+      <button onclick="document.getElementById('clear-banner').style.display='none'">Cancel</button>
+    </div>
+  </div>`;
+}
+function doClear() {
+  entries=[]; save(); render();
+  document.getElementById("clear-banner").style.display="none";
+  showToast("All data cleared");
+}
+
+// ── Export CSV ────────────────────────────────────────
+function exportCSV() {
+  const filtered = getFiltered();
+  const headers = ["Date","Type","Description","Expense (THB)","Income (THB)","Category","Account","Employee","Tag"];
+  const rows = filtered.map(e=>[
+    e.date, e.type, `"${(e.description||"").replace(/"/g,'""')}"`,
+    e.expense!=null?e.expense:"", e.income!=null?e.income:"",
+    e.category, e.account||"", e.employee||"", e.tag||""
+  ].join(","));
+  const blob = new Blob(["\uFEFF"+[headers.join(","),...rows].join("\n")],{type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download="BUBU_Financial_"+today()+".csv";
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast("CSV exported ("+filtered.length.toLocaleString()+" rows)");
+}
+
+// ── Sync Image (AI) ───────────────────────────────────
+async function handleImageSync(event) {
+  const file = event.target.files[0]; if(!file) return;
+  event.target.value="";
+  document.getElementById("sync-label").textContent="⏳ Reading…";
+  try {
+    const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file); });
+    const resp = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:1000,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:base64}},
+          {type:"text",text:`Extract ALL financial transactions from this image. Return ONLY a valid JSON array, no markdown.
+Each object: date (YYYY-MM-DD, use ${new Date().getFullYear()} if unknown), type ("Statement"/"SJS Advance"/"Expense Report"), description (vendor–purpose), expense (number|null THB paid), income (number|null THB received), category (one of ${JSON.stringify(CATEGORIES)}), account ("Current"/"Savings"/"Other"), employee (name or "").
+Return [] if no transactions found.`}
+        ]}]
+      })
+    });
+    const data = await resp.json();
+    const txt = (data.content||[]).find(b=>b.type==="text")?.text||"[]";
+    let extracted = [];
+    try { extracted = JSON.parse(txt.replace(/```json|```/g,"").trim()); } catch { throw new Error("AI parse error"); }
+    syncPending = Array.isArray(extracted) ? extracted.map(e=>({
+      id:uid(), date:e.date||today(), type:TYPES.includes(e.type)?e.type:"Statement",
+      description:e.description||"", expense:parseNum(e.expense), income:parseNum(e.income),
+      category:CATEGORIES.includes(e.category)?e.category:"Other",
+      account:ACCOUNTS.includes(e.account)?e.account:"Current", employee:e.employee||""
+    })) : [];
+    showSyncBanner();
+  } catch(err) { showToast("Sync failed: "+err.message,"error"); }
+  document.getElementById("sync-label").innerHTML="⊕ Sync Image";
+}
+function showSyncBanner() {
+  const b = document.getElementById("sync-banner");
+  b.style.display="block";
+  if(!syncPending||syncPending.length===0) {
+    b.innerHTML=`<div class="banner info"><div class="banner-title">AI ไม่พบรายการในรูปภาพนี้</div><button onclick="document.getElementById('sync-banner').style.display='none'">OK</button></div>`;
+    return;
+  }
+  const preview = syncPending.slice(0,3).map(e=>`<div class="banner-row"><span style="opacity:0.7;min-width:80px">${e.date}</span><span>${e.description}</span><span style="white-space:nowrap">${e.expense!=null?formatTHB(e.expense):formatTHB(e.income)}</span></div>`).join("");
+  const more = syncPending.length>3?`<div style="opacity:0.6;font-size:11px">+${syncPending.length-3} more…</div>`:"";
+  b.innerHTML=`<div class="banner info"><div class="banner-title">✦ AI พบ ${syncPending.length} รายการ</div><div class="banner-rows">${preview}${more}</div><div style="display:flex;gap:8px"><button onclick="confirmSync()">Import ${syncPending.length} entries</button><button onclick="discardSync()">Discard</button></div></div>`;
+}
+function confirmSync() {
+  if(!syncPending) return;
+  entries=[...syncPending,...entries]; syncPending=null;
+  save(); populateFilters(); render();
+  document.getElementById("sync-banner").style.display="none";
+  showToast("Imported successfully");
+}
+function discardSync() { syncPending=null; document.getElementById("sync-banner").style.display="none"; }
+
+// ── Charts ────────────────────────────────────────────
+const CHART_COLORS = [
+  "#2a6049","#c0392b","#e67e22","#2980b9","#8e44ad",
+  "#16a085","#d35400","#27ae60","#e74c3c","#f39c12",
+  "#1abc9c","#9b59b6","#3498db","#e91e63","#00bcd4",
+  "#ff5722","#607d8b","#795548","#009688","#673ab7"
+];
+
+let chartExp = null, chartInc = null;
+let chartsVisible = true;
+
+function toggleCharts() {
+  chartsVisible = !chartsVisible;
+  document.getElementById("charts-area").style.display = chartsVisible ? "grid" : "none";
+  const btn = document.getElementById("btn-show-charts");
+  btn.textContent = chartsVisible ? "◉ Show Charts" : "○ Show Charts";
+  btn.classList.toggle("active", chartsVisible);
+}
+
+function formatTHBShort(n) {
+  if(n >= 1000000) return "฿" + (n/1000000).toFixed(1) + "M";
+  if(n >= 1000) return "฿" + (n/1000).toFixed(0) + "K";
+  return "฿" + n.toFixed(0);
+}
+
+function renderCharts(filtered) {
+  // Build expense by category
+  const expMap = {}, incMap = {};
+  filtered.forEach(e => {
+    const cat = e.category || "Other";
+    const exp = parseNum(e.expense) || 0;
+    const inc = parseNum(e.income) || 0;
+    if(exp > 0) expMap[cat] = (expMap[cat]||0) + exp;
+    if(inc > 0) incMap[cat] = (incMap[cat]||0) + inc;
+  });
+
+  drawPie("chart-exp", "legend-exp", expMap, "expense");
+  drawPie("chart-inc", "legend-inc", incMap, "income");
+}
+
+function drawPie(canvasId, legendId, dataMap, type) {
+  const sorted = Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);
+  const total = sorted.reduce((s,[,v])=>s+v, 0);
+
+  // Group small slices (<2%) into "Other"
+  const threshold = total * 0.02;
+  const main = [], other = [];
+  sorted.forEach(([k,v]) => { if(v >= threshold) main.push([k,v]); else other.push([k,v]); });
+  if(other.length > 0) {
+    const otherTotal = other.reduce((s,[,v])=>s+v,0);
+    const existingOther = main.find(([k])=>k==="Other");
+    if(existingOther) existingOther[1] += otherTotal;
+    else main.push(["Other*", otherTotal]);
+  }
+
+  const labels = main.map(([k])=>k);
+  const values = main.map(([,v])=>v);
+  const colors = labels.map((_,i)=>CHART_COLORS[i % CHART_COLORS.length]);
+
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+
+  if(type === "expense" && chartExp) { chartExp.destroy(); chartExp = null; }
+  if(type === "income" && chartInc) { chartInc.destroy(); chartInc = null; }
+
+  if(total === 0) {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#9e9d99";
+    ctx.font = "13px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("No data", canvas.width/2, canvas.height/2);
+    document.getElementById(legendId).innerHTML = "";
+    return;
+  }
+
+  const chart = new Chart(ctx, {
+    type: "doughnut",
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: "#fff", hoverOffset: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "62%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = ((ctx.parsed / total)*100).toFixed(1);
+              return ` ${ctx.label}: ฿${ctx.parsed.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0})} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if(type === "expense") chartExp = chart;
+  else chartInc = chart;
+
+  // Render legend
+  const legendEl = document.getElementById(legendId);
+  legendEl.innerHTML = main.map(([label, val], i) => {
+    const pct = ((val/total)*100).toFixed(1);
+    return `<div class="legend-row" onclick="filterByCategory('${label.replace("*","")}')">
+      <div class="legend-dot" style="background:${colors[i]}"></div>
+      <span class="legend-label">${label}</span>
+      <span class="legend-val">${formatTHBShort(val)}</span>
+      <span class="legend-pct">${pct}%</span>
+    </div>`;
+  }).join("");
+}
+
+function filterByCategory(cat) {
+  const fc = document.getElementById("f-cat");
+  if(fc.value === cat) fc.value = "";
+  else fc.value = cat;
+  render();
+}
+
+
+// ── Bulk Edit ─────────────────────────────────────────
+let bulkMode = false;
+let selectedIds = new Set();
+
+function toggleBulkMode() {
+  bulkMode = !bulkMode;
+  selectedIds.clear();
+  const btn = document.getElementById("btn-bulk");
+  btn.textContent = bulkMode ? "☑ Bulk Edit" : "☐ Bulk Edit";
+  btn.style.background = bulkMode ? "var(--accent)" : "";
+  btn.style.color = bulkMode ? "#fff" : "";
+  btn.style.borderColor = bulkMode ? "var(--accent)" : "";
+  document.querySelector(".table-wrap table").classList.toggle("bulk-mode", bulkMode);
+  updateBulkBar();
+  render();
+}
+
+function toggleSelect(id, chk) {
+  if(chk.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  const row = document.getElementById("row-"+id);
+  if(row) row.classList.toggle("selected", chk.checked);
+  updateBulkBar();
+  // sync select-all checkbox
+  const all = document.getElementById("chk-all");
+  if(all) all.checked = window._sortedIds && window._sortedIds.every(id=>selectedIds.has(id));
+}
+
+function toggleSelectAll(chk) {
+  const ids = window._sortedIds || [];
+  ids.forEach(id => {
+    if(chk.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+    const row = document.getElementById("row-"+id);
+    if(row) row.classList.toggle("selected", chk.checked);
+    const rowChk = row && row.querySelector(".chk");
+    if(rowChk) rowChk.checked = chk.checked;
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById("bulk-bar");
+  const count = document.getElementById("bulk-count");
+  if(!bar) return;
+  bar.classList.toggle("visible", bulkMode && selectedIds.size > 0);
+  if(count) count.textContent = selectedIds.size.toLocaleString() + " selected";
+  // populate cat dropdown
+  const sel = document.getElementById("bulk-cat-select");
+  if(sel && sel.options.length <= 1) {
+    CATEGORIES.forEach(c => { const o = document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
+  }
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  toggleBulkMode(); // turn off bulk mode
+}
+
+function applyBulkCategory() {
+  const newCat = document.getElementById("bulk-cat-select").value;
+  if(!newCat) { showToast("เลือก Category ก่อนนะคะ", "error"); return; }
+  if(selectedIds.size === 0) { showToast("ยังไม่ได้เลือกรายการ", "error"); return; }
+  const n = selectedIds.size;
+  entries = entries.map(e => selectedIds.has(e.id) ? {...e, category: newCat} : e);
+  selectedIds.clear();
+  save(); render();
+  showToast(`อัปเดต ${n.toLocaleString()} รายการ → ${newCat}`);
+  updateBulkBar();
+}
+
+
+
+// ── Account Tabs ──────────────────────────────────────
+let activeTab = "all";
+const EXCLUDE_CATS = { transfer: true, loan: true, pettycash: false };
+const SPECIAL_CATS = { transfer: "Transfer", loan: "Loan", pettycash: "Petty Cash" };
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById("tab-" + tab);
+  if(btn) btn.classList.add("active");
+  render();
+}
+
+function toggleExclude(key) {
+  EXCLUDE_CATS[key] = !EXCLUDE_CATS[key];
+  const btn = document.getElementById("excl-" + key);
+  if(btn) btn.classList.toggle("on", EXCLUDE_CATS[key]);
+  render();
+}
+
+function tabFilter(entry) {
+  const acc = (entry.account || "Current").toLowerCase().trim();
+  const cat = (entry.category || "").toLowerCase();
+  const type = (entry.type || "").toLowerCase();
+  if(activeTab === "all") return true;
+  if(activeTab === "current") return acc === "current";
+  if(activeTab === "savings") return acc === "savings" || acc === "saving";
+  if(activeTab === "loan") return cat === "loan";
+  if(activeTab === "pettycash") return cat === "petty cash";
+  if(activeTab === "sjs") return type === "sjs advance";
+  return true;
+}
+
+function updateTabCounts(allFiltered) {
+  // allFiltered = after year/month/cat/type filter only (no tab filter)
+  const groups = { all: 0, current: 0, savings: 0, loan: 0, pettycash: 0, sjs: 0 };
+  allFiltered.forEach(e => {
+    const acc = (e.account || "Current").toLowerCase().trim();
+    const cat = (e.category || "").toLowerCase();
+    const type = (e.type || "").toLowerCase();
+    groups.all++;
+    if(acc === "current") groups.current++;
+    else if(acc === "savings" || acc === "saving") groups.savings++;
+    if(cat === "loan") groups.loan++;
+    if(cat === "petty cash") groups.pettycash++;
+    if(type === "sjs advance") groups.sjs++;
+  });
+  Object.entries(groups).forEach(([k, v]) => {
+    const el = document.getElementById("tc-" + k);
+    if(el) el.textContent = v.toLocaleString();
+  });
+}
+
+function renderPnL(tabFiltered) {
+  // P&L = tab filtered, then exclude chosen special cats
+  const excluded = {};
+  Object.entries(EXCLUDE_CATS).forEach(([key, on]) => {
+    if(on) excluded[SPECIAL_CATS[key]] = true;
+  });
+
+  const pnlRows = tabFiltered.filter(e => !excluded[e.category]);
+  const exclRows = tabFiltered.filter(e => excluded[e.category]);
+
+  const totExp = pnlRows.reduce((s,e)=>s+(parseNum(e.expense)||0),0);
+  const totInc = pnlRows.reduce((s,e)=>s+(parseNum(e.income)||0),0);
+  const net = totInc - totExp;
+
+  document.getElementById("pnl-exp").textContent = "฿"+totExp.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("pnl-inc").textContent = "฿"+totInc.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const netEl = document.getElementById("pnl-net");
+  netEl.textContent = (net<0?"-":"")+"฿"+Math.abs(net).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  netEl.className = "pnl-val " + (net>=0?"pos":"neg");
+
+  // excluded row
+  const exclEl = document.getElementById("pnl-excluded-row");
+  if(exclEl) {
+    const parts = Object.entries(EXCLUDE_CATS)
+      .filter(([,on])=>on)
+      .map(([key]) => {
+        const cat = SPECIAL_CATS[key];
+        const rows = tabFiltered.filter(e=>e.category===cat);
+        const exp = rows.reduce((s,e)=>s+(parseNum(e.expense)||0),0);
+        const inc = rows.reduce((s,e)=>s+(parseNum(e.income)||0),0);
+        return `<div class="pnl-excl-item">🚫 ${cat}: exp <span>฿${exp.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0})}</span> / inc <span>฿${inc.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0})}</span> — excluded from P&amp;L</div>`;
+      });
+    exclEl.innerHTML = parts.length ? parts.join("") : '<span style="color:var(--text3);font-size:11px">ไม่มี category ที่ excluded จาก P&L</span>';
+  }
+}
+
+// ── Tags ──────────────────────────────────────────────
+const TAGS_KEY = "bubu-tags-v1";
+let allTags = [];
+let activeTagFilter = "";
+
+function loadTags() {
+  try { const d = localStorage.getItem(TAGS_KEY); if(d) allTags = JSON.parse(d); } catch {}
+}
+function saveTags() {
+  try { localStorage.setItem(TAGS_KEY, JSON.stringify(allTags)); } catch {}
+}
+
+function getTagsFromEntries() {
+  // auto-collect tags used in entries but not in allTags list
+  const used = [...new Set(entries.map(e=>e.tag).filter(Boolean))];
+  used.forEach(t => { if(!allTags.includes(t)) allTags.push(t); });
+}
+
+function renderTagFilterRow() {
+  const row = document.getElementById("tag-filter-row");
+  if(!row) return;
+  const usedTags = [...new Set(entries.map(e=>e.tag).filter(Boolean))].sort();
+  if(usedTags.length === 0) { row.innerHTML=""; return; }
+  row.innerHTML = `<span style="font-size:11px;color:var(--text3);font-family:var(--mono)">TAG:</span>`
+    + usedTags.map(t => `<span class="tag-pill${activeTagFilter===t?' active':''}" onclick="setTagFilter('${t.replace(/'/g,"\'")}')">🏷 ${t}</span>`).join("")
+    + (activeTagFilter ? `<button onclick="setTagFilter('')" style="font-size:11px;padding:3px 8px;color:var(--red);border-color:#f0ccc8">✕ clear</button>` : "");
+}
+
+function setTagFilter(tag) {
+  activeTagFilter = (activeTagFilter === tag) ? "" : tag;
+  render();
+}
+
+// ── tag filter ถูกรวมใน getFiltered() แล้ว ──
+
+// ── Tag dropdown in form ──
+function showTagDropdown(val) {
+  const dd = document.getElementById("tag-dropdown");
+  if(!dd) return;
+  const q = val.trim().toLowerCase();
+  const opts = allTags.filter(t => !q || t.toLowerCase().includes(q));
+  if(opts.length === 0 && !q) { dd.style.display="none"; return; }
+  dd.style.display = "block";
+  dd.innerHTML = opts.map(t =>
+    `<div onmousedown="pickTag('${t.replace(/'/g,"\'")}')">🏷 ${t}</div>`
+  ).join("") + (q && !allTags.find(t=>t.toLowerCase()===q) ? `<div onmousedown="pickTag('${val.trim().replace(/'/g,"\'")}')">➕ สร้าง "${val.trim()}"</div>` : "");
+}
+function hideTagDropdown() {
+  const dd = document.getElementById("tag-dropdown");
+  if(dd) dd.style.display="none";
+}
+function pickTag(val) {
+  const inp = document.getElementById("f-tag");
+  if(inp) inp.value = val;
+  hideTagDropdown();
+}
+
+// ── Tag Manager ──
+function toggleTagManager() {
+  const p = document.getElementById("tag-manage-panel");
+  if(p.style.display==="none"||p.style.display==="") { renderTagManager(); p.style.display="block"; }
+  else p.style.display="none";
+}
+
+function renderTagManager() {
+  const p = document.getElementById("tag-manage-panel");
+  getTagsFromEntries();
+  const usedInEntries = new Set(entries.map(e=>e.tag).filter(Boolean));
+  p.innerHTML = `<div class="tag-manage">
+    <div class="tag-manage-title">🏷 จัดการ Tags
+      <button onclick="document.getElementById('tag-manage-panel').style.display='none'" style="margin-left:auto;font-size:12px;padding:3px 8px">✕ ปิด</button>
+    </div>
+    <div class="tag-list-mgr" id="tag-list-mgr">
+      ${allTags.length===0?'<span style="font-size:12px;color:var(--text3)">ยังไม่มี tag</span>':
+        allTags.map(t=>`
+        <span class="tag-chip">
+          🏷 ${t}
+          <span style="font-size:10px;color:var(--text3);margin-left:2px">(${[...usedInEntries].filter(u=>u===t).length?entries.filter(e=>e.tag===t).length:0})</span>
+          <button onclick="removeTag('${t.replace(/'/g,"\'")}')">×</button>
+        </span>`).join("")}
+    </div>
+    <div class="tag-add-row">
+      <input type="text" id="new-tag-inp" placeholder="ชื่อ tag ใหม่…" style="max-width:220px" onkeydown="if(event.key==='Enter')addTag()"/>
+      <button onclick="addTag()" class="primary" style="font-size:12px;padding:5px 12px">+ เพิ่ม</button>
+    </div>
+  </div>`;
+}
+
+function addTag() {
+  const inp = document.getElementById("new-tag-inp");
+  const val = (inp?.value||"").trim();
+  if(!val) return;
+  if(allTags.includes(val)) { showToast("Tag นี้มีอยู่แล้วค่ะ","error"); return; }
+  allTags.push(val);
+  saveTags(); renderTagManager(); renderTagFilterRow();
+  showToast(`เพิ่ม tag "${val}" แล้วค่ะ`);
+}
+
+function removeTag(tag) {
+  const used = entries.filter(e=>e.tag===tag).length;
+  if(used > 0 && !confirm(`Tag "${tag}" ใช้อยู่ใน ${used} รายการ — ลบออกจาก list? (รายการยังคงมี tag นี้)`) ) return;
+  allTags = allTags.filter(t=>t!==tag);
+  saveTags(); renderTagManager(); renderTagFilterRow();
+  showToast(`ลบ tag "${tag}" แล้วค่ะ`);
+}
+
+
+load();
+</script>
+</body>
+</html>
